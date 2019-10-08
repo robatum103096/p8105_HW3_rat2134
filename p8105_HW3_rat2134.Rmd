@@ -1,0 +1,13 @@
+---
+title: "p8105_HW3_rat2134"
+author: "Robert Tumasian"
+date: "10/8/2019"
+output: github_document
+---
+# Homework 3
+## Problem 1
+```{r}
+#Load data
+library(p8105.datasets)
+data("instacart")
+```
