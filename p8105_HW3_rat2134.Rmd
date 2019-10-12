@@ -4,10 +4,170 @@ author: "Robert Tumasian"
 date: "10/8/2019"
 output: github_document
 ---
+
 # Homework 3
+```{r, message=FALSE}
+#Load required packages
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(knitr)
+```
+
 ## Problem 1
 ```{r}
-#Load data
+#Load dataset
 library(p8105.datasets)
 data("instacart")
 ```
+
+The `instacart` dataset contains information on grocery purchases of `r length(unique(pull(instacart, user_id)))` unique online users. The dataset contains `r dim(instacart)[1]` products from a particular order and `r dim(instacart)[2]` variables:
+
+* Order identifier (`order_id`, integer vector)
+* Product identifier (`product_id`, integer vector)
+* Order each product was added to cart (`add_to_cart_order`, integer vector)
+* Ordered previously by user (`reordered`, integer vector) [1 = Yes, 0 = No]
+* Customer identifier (`user_id`, integer vector)
+* Evaluation set in which the observation is located (`eval_set`, character vector) [all observations in this dataset are from the training set]
+* Order sequence number (`order_number`, integer vector) [1 = first order placed by user, n = n'th order placed by user]
+* Day of the week the order was placed (`order_dow`, integer vector) [0 = Sunday, 6 = Saturday]
+* Hour of the day the order was placed (`order_hour_of_day`, integer vector) [0 = 12 - 12:59 am, 23 = 11 - 11:59 pm]
+* Days since last order (`days_since_prior_order`, integer vector) [If user only has one order recorded, `days_since_prior_order` = `NA`]
+* Product name (`product_name`, character vector)
+* Aisle identifier (`aisle_id`, integer vector)
+* Department identifier (`department_id`, integer vector)
+* Aisle name (`aisle`, character vector)
+* Department name (`department`, character vector)
+
+We can interpret each row of the `instacart` dataset. For instance, consider the first row of the dataset. We can see that order #`r pull(instacart[1,], order_number)` of user #`r pull(instacart[1,], user_id)` was completed on a Wednesday (`order_dow` = `r pull(instacart[1,], order_dow)`) between 10 am and 11 am (`order_hour_of_day` = `r pull(instacart[1,], order_hour_of_day)`). Item #`r pull(instacart[1,],add_to_cart_order)` added to this user's order was Bulgarian Yogurt (`product_id` = #`r pull(instacart[1,], product_id)`), from the yogurt aisle (aisle #`r pull(instacart[1,], aisle_id)`) in the '`r pull(instacart[1,], department)`' department (`department_id` = #`r pull(instacart[1,], department_id)`). This order was completed `r pull(instacart[1,], days_since_prior_order)` days after the user's previous order (order #`r pull(instacart[1,], order_number-1)`). This user has ordered this product previously (`reordered` = `r pull(instacart[1,], reordered)`).
+
+We can interpret each remaining row of the dataset in a similar way to obtain further information regarding the purchases of users over time.
+
+There are a total of `r length(unique(pull(instacart, aisle_id)))` aisles. The top three aisles in which the most items are ordered from are:
+
+1. Fresh vegetables
+2. Fresh fruits
+3. Packaged vegetables fruits
+
+```{r}
+#Top three aisles where most items are ordered from
+instacart %>%
+  group_by(aisle) %>%
+  count(aisle) %>%
+  arrange(-n) %>%
+  .[1:3,] %>%
+  rename("Aisle" = aisle,
+         "Number of Items Ordered" = n) %>%
+  knitr::kable()
+```
+
+```{r}
+#Plot showing the number of items ordered from each aisle
+instacart %>%
+  group_by(aisle, department) %>%
+  count(aisle) %>%
+  filter(n > 10000) %>%
+  ggplot(aes(x = reorder(aisle, -n), y = n, fill = department)) +
+    geom_bar(stat="identity") +
+    labs(
+      title = "Number of items ordered from each aisle, by department",
+      x = "Aisle",
+      y = "Number of Items Ordered",
+      fill = "Department") +
+    coord_flip()
+```
+
+Here, we can also see that the most items are ordered from the aisles listed above, and these aisles are part of the 'produce' and 'dairy eggs' departments.
+
+```{r}
+#Table showing the three most popular items in the 'baking ingredients' aisle
+BAKING_INGRED_three_most_popular_items = 
+  instacart %>%
+    filter(aisle == "baking ingredients") %>%
+    select(c(aisle, product_name)) %>%
+    count(aisle, product_name) %>%
+    arrange(-n) %>%
+    .[1:3,] %>%
+    rename("Aisle" = aisle,
+           "Product Name" = product_name,
+           "Number Ordered" = n)
+
+#Table showing the three most popular items in the 'dog food care' aisle
+DOG_FOOD_CARE_three_most_popular_items = 
+  instacart %>%
+    filter(aisle == "dog food care") %>%
+    select(c(aisle, product_name)) %>%
+    count(aisle, product_name) %>%
+    arrange(-n) %>%
+    .[1:3,] %>%
+    rename("Aisle" = aisle,
+           "Product Name" = product_name,
+           "Number Ordered" = n)
+
+#Table showing the three most popular items in the 'dog food care' aisle
+PACKAGED_VEG_FRUITS_three_most_popular_items = 
+  instacart %>%
+    filter(aisle == "packaged vegetables fruits") %>%
+    select(c(aisle, product_name)) %>%
+    count(aisle, product_name) %>%
+    arrange(-n) %>%
+    .[1:3,] %>%
+    rename("Aisle" = aisle,
+           "Product Name" = product_name,
+           "Number Ordered" = n)
+
+#Merging the three tables above
+Three_most_popular_items_in_aisles = 
+  bind_rows(BAKING_INGRED_three_most_popular_items,
+            DOG_FOOD_CARE_three_most_popular_items,
+            PACKAGED_VEG_FRUITS_three_most_popular_items)
+
+knitr::kable(Three_most_popular_items_in_aisles)
+```
+
+```{r, warning=FALSE}
+#Table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week
+instacart %>%
+  filter(product_name == c("Pink Lady Apples", "Coffee Ice Cream")) %>%
+  select(c(order_hour_of_day, order_dow, product_name)) %>%
+  group_by(order_dow, product_name) %>%
+  summarize(round(mean(order_hour_of_day), digits = 2)) %>%
+  pivot_wider(names_from = product_name,
+              values_from = 'round(mean(order_hour_of_day), digits = 2)') %>%
+  ungroup() %>%
+  mutate(order_dow =
+           recode(order_dow,
+                  "0" = "Sunday", "1" = "Monday", "2" = "Tuesday", 
+                  "3" = "Wednesday","4" = "Thursday", "5" = "Friday", 
+                  "6" = "Saturday")) %>%
+  rename("Day of Week" = order_dow) %>%
+  knitr::kable()
+```
+
+We can see that, on average, users order both Coffee Ice Cream and Pink Lady Apples at the latest time of the day on Wednesdays between 3-4 pm and 1-2 pm, respectively. In addition, on average, users order Coffee Ice Cream and Pink Lady Apples at the earliest time of the day on Fridays between 10-11 am and Saturdays between 11am-12 pm, respectively.
+
+## Problem 2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
