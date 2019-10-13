@@ -231,15 +231,65 @@ brfss_smart2010_TIDY %>%
 
 From the two-panel plot above, we can see that the "Very good" response had the highest data value among counties in NY in both 2006 and 2010. Similarly, the "Poor" response had the lowest data value in both years. Additionally, the data values for each response category increase from 2006 to 2010.
 
+## Problem 3
+```{r, message=FALSE}
+#Load data
+accel_data = read_csv("./HW3_Dataset/Accel_data.csv")
 
+#Cleaning
+accel_data_TIDY = 
+  accel_data %>%
+    janitor::clean_names() %>%
+    rename("day_of_study" = day_id,
+           "week_of_study" = week,
+           "day_of_week" = day) %>%
+    pivot_longer(
+      activity_1:activity_1440,
+      names_to = "minute_of_day",
+      values_to = "activity_counts") %>%
+    mutate(minute_of_day = str_replace(string = minute_of_day, 
+                                       pattern = ".*_", 
+                                       replacement = "")) %>%
+    mutate(weekend = ifelse(day_of_week %in% c("Saturday", "Sunday"), 1, 0)) %>%
+    mutate(minute_of_day = as.numeric(minute_of_day))
+```
 
+The `accel_data_TIDY` dataset represents daily accelerometer data, by minute, for an individual in the study. There are `r dim(accel_data_TIDY)[1]` observations and `r dim(accel_data_TIDY)[2]` variables:
 
+* Week of the study (`week_of_study`, numeric vector) [1-5]
+* Day of the study (`day_of_study`, numeric vector) [total of 35 days]
+* Day of the week (`day_of_week`, character vector)
+* Minute of the day (`minute_of_day`, numeric vector) [1-1440]
+* Activity counts (`activity_counts`, numeric vector)
+* Weekend or weekday (`weekend`, numeric vector) [0 = weekday, 1 = weekend]
 
+```{r}
+accel_data_TIDY %>%
+  group_by(day_of_study) %>%
+  summarize(total_activity = sum(activity_counts)) %>%
+  rename("Day of Study" = day_of_study,
+         "Total Activity" = total_activity) %>%
+  knitr::kable()
+```
 
+From the table above, we can see that the subject had the least amount of activity on days 24 and 31, and these are both Saturdays. The subject had the most amount of activity on day 16.
 
+```{r}
+#Single-panel plot that shows the 24-hour activity time courses for each day, by day of the week
+accel_data_TIDY %>%
+  ggplot(aes(x = minute_of_day, 
+             y = activity_counts, 
+             group = day_of_study, 
+             color = day_of_week)) +
+  geom_line() +
+  labs(
+    title = "24-hour activity time courses for each day",
+    x = "Minute of Day",
+    y = "Activity Counts",
+    color = "Day of Week")
+```
 
-
-
+From the plot above, we can see that the subject tends to have the lowest activity in the beginning of the day (0-250 minutes) and the highest activity later in the day (1125 - 1375 minutes) for each day of the week.
 
 
 
