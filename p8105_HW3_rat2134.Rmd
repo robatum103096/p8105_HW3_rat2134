@@ -12,12 +12,14 @@ library(tidyverse)
 library(ggplot2)
 library(dplyr)
 library(knitr)
+library(p8105.datasets)
+library(janitor)
+library(patchwork)
 ```
 
 ## Problem 1
 ```{r}
 #Load dataset
-library(p8105.datasets)
 data("instacart")
 ```
 
@@ -77,7 +79,7 @@ instacart %>%
     coord_flip()
 ```
 
-Here, we can also see that the most items are ordered from the aisles listed above, and these aisles are part of the 'produce' and 'dairy eggs' departments.
+Here, we can also see that the most items are ordered from the three aisles listed above, and these aisles are part of the 'produce' and 'dairy eggs' departments.
 
 ```{r}
 #Table showing the three most popular items in the 'baking ingredients' aisle
@@ -125,6 +127,8 @@ Three_most_popular_items_in_aisles =
 knitr::kable(Three_most_popular_items_in_aisles)
 ```
 
+We can see that the most ordered baking ingredients are light brown sugar, pure baking soda, and cane sugar. Similarly, the top three most ordered items in the 'dog food care' and 'packaged vegetables fruits' aisles are provided. We can also see here that packaged fruits and vegetables are ordered by many more people than dog food and baking ingredients.
+
 ```{r, warning=FALSE}
 #Table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week
 instacart %>%
@@ -133,7 +137,7 @@ instacart %>%
   group_by(order_dow, product_name) %>%
   summarize(round(mean(order_hour_of_day), digits = 2)) %>%
   pivot_wider(names_from = product_name,
-              values_from = 'round(mean(order_hour_of_day), digits = 2)') %>%
+              values_from = "round(mean(order_hour_of_day), digits = 2)") %>%
   ungroup() %>%
   mutate(order_dow =
            recode(order_dow,
@@ -147,17 +151,85 @@ instacart %>%
 We can see that, on average, users order both Coffee Ice Cream and Pink Lady Apples at the latest time of the day on Wednesdays between 3-4 pm and 1-2 pm, respectively. In addition, on average, users order Coffee Ice Cream and Pink Lady Apples at the earliest time of the day on Fridays between 10-11 am and Saturdays between 11am-12 pm, respectively.
 
 ## Problem 2
+```{r, warning=FALSE}
+#Load dataset
+data("brfss_smart2010")
 
+#Cleaning
+brfss_smart2010_TIDY = 
+  brfss_smart2010 %>%
+    janitor::clean_names() %>%
+    rename(state = "locationabbr",
+           county = "locationdesc", 
+           geo_coordinates = "geo_location",
+           resp_id = "respid") %>%
+    mutate(county = str_replace(string = county, 
+                                pattern = ".*-", 
+                                replacement = "")) %>%
+    filter(topic == "Overall Health",
+           response %in% c("Poor", "Fair", "Good", "Very good", "Excellent")) %>%
+    mutate(response = factor(response,
+                             levels = c("Poor", "Fair", "Good", "Very good", "Excellent"),
+                             ordered = TRUE))
+```
 
+```{r}
+#States observed at 7+ locations in 2002
+brfss_smart2010_TIDY %>%
+  filter(year == 2002) %>%
+  select(county, state) %>%
+  distinct() %>%
+  count(state, sort = TRUE) %>%
+  filter(n >= 7) %>%
+  rename(State = state,
+         "Number of Counties" = n) %>%
+  knitr::kable()
 
+#States observed at 7+ locations in 2010
+brfss_smart2010_TIDY %>%
+  filter(year == 2010) %>%
+  select(county, state) %>%
+  distinct() %>%
+  count(state, sort = TRUE) %>%
+  filter(n >= 7) %>%
+  rename(State = state, 
+         "Number of Counties" = n) %>%
+  knitr::kable()
 
+```
 
+From the two tables above, we can see that at least 7 counties in Pennsylvania, Massachusetts, New Jersey, Connecticut, Florida, and North Carolina were observed in 2002. In 2010, at least 7 counties were observed in 14 states: Florida, New Jersey, Texas, California, Maryland, North Carolina, Nebraska, Washington, Massachusetts, New York, Ohio, Colorado, Pennsylvania, and South Carolina.
 
+```{r}
+brfss_smart2010_TIDY %>%
+  filter(response == "Excellent") %>%
+  group_by(year, state) %>%
+  summarize(average_data_value = mean(data_value)) %>%
+  ggplot(aes(x = year, y = average_data_value, color = state)) +
+    geom_line() +
+    labs(
+      title = "Average data value over time, by state",
+      x = "Year",
+      y = "Average Data Value")
+```
 
+From the plot above, we can see that the average data values within all 50 states fall in the interval (10,30) from 2002-2010.
 
+```{r, message=FALSE}
+#Two-panel plot showing distribution of 'data_value' for responses in NY
+brfss_smart2010_TIDY %>%
+  filter(state == "NY",
+         year %in% c(2006, 2010)) %>%
+  select(year, data_value, response) %>%
+  ggplot(aes(x = response, y = data_value)) +
+  geom_bar(stat = "identity") +
+  facet_grid(~year) +
+  labs(
+    x = "Response",
+    y = "Data Value")
+```
 
-
-
+From the two-panel plot above, we can see that the "Very good" response had the highest data value among counties in NY in both 2006 and 2010. Similarly, the "Poor" response had the lowest data value in both years. Additionally, the data values for each response category increase from 2006 to 2010.
 
 
 
