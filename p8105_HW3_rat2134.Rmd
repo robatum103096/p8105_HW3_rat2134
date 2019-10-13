@@ -14,7 +14,6 @@ library(dplyr)
 library(knitr)
 library(p8105.datasets)
 library(janitor)
-library(patchwork)
 ```
 
 ## Problem 1
@@ -41,7 +40,7 @@ The `instacart` dataset contains information on grocery purchases of `r length(u
 * Aisle name (`aisle`, character vector)
 * Department name (`department`, character vector)
 
-We can interpret each row of the `instacart` dataset. For instance, consider the first row of the dataset. We can see that order #`r pull(instacart[1,], order_number)` of user #`r pull(instacart[1,], user_id)` was completed on a Wednesday (`order_dow` = `r pull(instacart[1,], order_dow)`) between 10 am and 11 am (`order_hour_of_day` = `r pull(instacart[1,], order_hour_of_day)`). Item #`r pull(instacart[1,],add_to_cart_order)` added to this user's order was Bulgarian Yogurt (`product_id` = #`r pull(instacart[1,], product_id)`), from the yogurt aisle (aisle #`r pull(instacart[1,], aisle_id)`) in the '`r pull(instacart[1,], department)`' department (`department_id` = #`r pull(instacart[1,], department_id)`). This order was completed `r pull(instacart[1,], days_since_prior_order)` days after the user's previous order (order #`r pull(instacart[1,], order_number-1)`). This user has ordered this product previously (`reordered` = `r pull(instacart[1,], reordered)`).
+We can interpret each row of the `instacart` dataset. For instance, consider the first row of the dataset. We can see that order #`r pull(instacart[1,], order_number)` of user #`r pull(instacart[1,], user_id)` was completed on a Wednesday (`order_dow` = `r pull(instacart[1,], order_dow)`) between 10 am and 11 am (`order_hour_of_day` = `r pull(instacart[1,], order_hour_of_day)`). Item #`r pull(instacart[1,],add_to_cart_order)` added to this user's order was Bulgarian Yogurt (`product_id` = #`r pull(instacart[1,], product_id)`), from the yogurt aisle (aisle #`r pull(instacart[1,], aisle_id)`) in the '`r pull(instacart[1,], department)`' department (`department_id` = #`r pull(instacart[1,], department_id)`). This order was completed `r pull(instacart[1,], days_since_prior_order)` days after the user's previous order (order #`r pull(instacart[1,], order_number)-1`). This user has ordered this product previously (`reordered` = `r pull(instacart[1,], reordered)`).
 
 We can interpret each remaining row of the dataset in a similar way to obtain further information regarding the purchases of users over time.
 
@@ -69,17 +68,17 @@ instacart %>%
   group_by(aisle, department) %>%
   count(aisle) %>%
   filter(n > 10000) %>%
-  ggplot(aes(x = reorder(aisle, -n), y = n, fill = department)) +
+  ggplot(aes(x = reorder(aisle, -n), y = n)) +
     geom_bar(stat="identity") +
     labs(
-      title = "Number of items ordered from each aisle, by department",
+      title = "Number of items ordered from each aisle",
       x = "Aisle",
       y = "Number of Items Ordered",
       fill = "Department") +
     coord_flip()
 ```
 
-Here, we can also see that the most items are ordered from the three aisles listed above, and these aisles are part of the 'produce' and 'dairy eggs' departments.
+Here, we can also see that the most items are ordered from the `fresh vegetables`, `fresh fruits`, and `packaged vegetables fruits` aisles. All three of these aisles are part of the produce department.
 
 ```{r}
 #Table showing the three most popular items in the 'baking ingredients' aisle
@@ -127,7 +126,7 @@ Three_most_popular_items_in_aisles =
 knitr::kable(Three_most_popular_items_in_aisles)
 ```
 
-We can see that the most ordered baking ingredients are light brown sugar, pure baking soda, and cane sugar. Similarly, the top three most ordered items in the 'dog food care' and 'packaged vegetables fruits' aisles are provided. We can also see here that packaged fruits and vegetables are ordered by many more people than dog food and baking ingredients.
+We can see that the most ordered baking ingredients are light brown sugar, pure baking soda, and cane sugar. Similarly, the top three most ordered items in the 'dog food care' and 'packaged vegetables fruits' aisles are provided in the table above. We can also see that packaged fruits and vegetables are ordered much more than dog food and baking ingredients.
 
 ```{r, warning=FALSE}
 #Table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week
@@ -198,14 +197,14 @@ brfss_smart2010_TIDY %>%
 
 ```
 
-From the two tables above, we can see that at least 7 counties in Pennsylvania, Massachusetts, New Jersey, Connecticut, Florida, and North Carolina were observed in 2002. In 2010, at least 7 counties were observed in 14 states: Florida, New Jersey, Texas, California, Maryland, North Carolina, Nebraska, Washington, Massachusetts, New York, Ohio, Colorado, Pennsylvania, and South Carolina.
+From the two tables above, we can see that at least 7 counties in Pennsylvania, Massachusetts, New Jersey, Connecticut, Florida, and North Carolina were observed in 2002, in which Pennsylvania had the highest number of counties observed. In 2010, at least 7 counties were observed in 14 states: Florida, New Jersey, Texas, California, Maryland, North Carolina, Nebraska, Washington, Massachusetts, New York, Ohio, Colorado, Pennsylvania, and South Carolina, in which Florida had the highest number of counties observed.
 
-```{r}
+```{r, warning=FALSE}
 brfss_smart2010_TIDY %>%
   filter(response == "Excellent") %>%
   group_by(year, state) %>%
   summarize(average_data_value = mean(data_value)) %>%
-  ggplot(aes(x = year, y = average_data_value, color = state)) +
+  ggplot(aes(x = year, y = average_data_value, group = state)) +
     geom_line() +
     labs(
       title = "Average data value over time, by state",
@@ -213,7 +212,7 @@ brfss_smart2010_TIDY %>%
       y = "Average Data Value")
 ```
 
-From the plot above, we can see that the average data values within all 50 states fall in the interval (10,30) from 2002-2010.
+From the plot above, we can see that the average data values in all 50 states fall in the interval (10,30) from 2002-2010.
 
 ```{r, message=FALSE}
 #Two-panel plot showing distribution of 'data_value' for responses in NY
@@ -256,10 +255,10 @@ accel_data_TIDY =
 
 The `accel_data_TIDY` dataset represents daily accelerometer data, by minute, for an individual in the study. There are `r dim(accel_data_TIDY)[1]` observations and `r dim(accel_data_TIDY)[2]` variables:
 
-* Week of the study (`week_of_study`, numeric vector) [1-5]
-* Day of the study (`day_of_study`, numeric vector) [total of 35 days]
-* Day of the week (`day_of_week`, character vector)
-* Minute of the day (`minute_of_day`, numeric vector) [1-1440]
+* Week of the study (`week_of_study`, numeric vector) [1-5 weeks]
+* Day of the study (`day_of_study`, numeric vector) [1-35 days]
+* Day of the week (`day_of_week`, character vector) [Sunday-Saturday]
+* Minute of the day (`minute_of_day`, numeric vector) [1-1440 minutes]
 * Activity counts (`activity_counts`, numeric vector)
 * Weekend or weekday (`weekend`, numeric vector) [0 = weekday, 1 = weekend]
 
@@ -272,7 +271,7 @@ accel_data_TIDY %>%
   knitr::kable()
 ```
 
-From the table above, we can see that the subject had the least amount of activity on days 24 and 31, and these are both Saturdays. The subject had the most amount of activity on day 16.
+From the table above, we can see that the subject had the least amount of activity on days 24 and 31, and these are both Saturdays. The subject had the most amount of activity on day 16, which is a Monday.
 
 ```{r}
 #Single-panel plot that shows the 24-hour activity time courses for each day, by day of the week
@@ -289,7 +288,7 @@ accel_data_TIDY %>%
     color = "Day of Week")
 ```
 
-From the plot above, we can see that the subject tends to have the lowest activity in the beginning of the day (0-250 minutes) and the highest activity later in the day (1125 - 1375 minutes) for each day of the week.
+From the plot above, we can see that the subject tends to have the lowest activity in the beginning of the day (0-250 minutes) and the highest activity later in the day (1125 - 1375 minutes) for each day of the week. However, the subject has some peaks of high activity during some days between 300-750 minutes.
 
 
 
